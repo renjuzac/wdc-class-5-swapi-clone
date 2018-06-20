@@ -45,7 +45,7 @@ class PeopleEndpointTestCase(TestCase):
             'mass': 77,
             'homeworld': 'http://localhost:8000/planets/1/',
             'hair_color': 'blond',
-            'created': '2018-04-14T10:15:30+00:00',
+            'created': '2018-04-14T10:15:30Z',
         }
         self.assertEqual(response.json(), expected)
 
