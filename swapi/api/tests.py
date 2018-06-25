@@ -56,19 +56,19 @@ class PeopleEndpointTestCase(TestCase):
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertEqual(len(response.json()), 3)
         expected = [
-            {'created': '2018-04-14T10:15:30+00:00',
+            {'created': '2018-04-14T10:15:30Z',
              'hair_color': 'blond',
              'height': 172,
              'homeworld': 'http://localhost:8000/planets/1/',
              'mass': 77,
              'name': 'Luke Skywalker'},
-            {'created': '2018-04-14T10:15:30+00:00',
+            {'created': '2018-04-14T10:15:30Z',
              'hair_color': None,
              'height': 167,
              'homeworld': 'http://localhost:8000/planets/1/',
              'mass': 75,
              'name': 'C-3PO'},
-            {'created': '2018-04-14T10:15:30+00:00',
+            {'created': '2018-04-14T10:15:30Z',
              'hair_color': None,
              'height': 96,
              'homeworld': 'http://localhost:8000/planets/2/',
@@ -99,7 +99,7 @@ class PeopleEndpointTestCase(TestCase):
             'mass': 32,
             'homeworld': 'http://localhost:8000/planets/1/',
             'hair_color': 'black',
-            'created': '2018-04-14T10:15:30+00:00',
+            'created': '2018-04-14T10:15:30Z',
         }
         self.assertEqual(response.json(), expected)
         self.assertEqual(People.objects.count(), 4)

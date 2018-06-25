@@ -36,24 +36,40 @@ def people_list_view(request):
         * If submited payload is nos JSON valid, return a `400` response.
     """
     if request.method == 'GET':
-        result = {}
-        result["count"] = People.objects.count()
-        result["results"] = []
+        result = []
         the_people = People.objects.values()
+
         for people in the_people:
-            result["results"].append(people)
+            people['homeworld'] = 'http://localhost:8000/planets/{}/'.format(people['homeworld_id'])
+            del people['id']
+            del people['homeworld_id']
+            result.append(people)
         
         return JsonResponse(result,safe=False)
     elif request.method == 'POST':
         text = (request.body.decode('utf-8'))
         try :
-            data = json.loads(text)
-            homeworld = Planet.objects.filter(name__icontains=data["homeworld"]).get()
+            try:
+                data = json.loads(text)
+            except ValueError:
+                return JsonResponse({'msg': 'Provide a valid JSON payload', 'success': False},status=400)
+            if not isinstance(data['height'],int):
+                raise ValueError
+            homeworldset = Planet.objects.filter(id__exact=data["homeworld"])
+            if homeworldset:
+                homeworld = Planet.objects.filter(id__exact=data["homeworld"]).get()
+            else :
+                return JsonResponse({"success": False,"msg": "Could not find planet with id: 9999"},status = 404)
+
             People.objects.create(name=data["name"],height=data["height"],
             mass = data["mass"],hair_color = data["hair_color"] ,homeworld =homeworld)
-            return HttpResponse("Created user "+data["name"])
-        except TypeError:
-            return JsonResponse({'msg': 'Provide a valid JSON payload', 'success': False},status=400)
+            user  = People.objects.filter(name__exact=data["name"]).get()
+            result = data
+            result['homeworld'] = 'http://localhost:8000/planets/{}/'.format(data['homeworld'])
+            result['created'] = user.created
+            return JsonResponse(result,status=201)
+        except ValueError:
+            return JsonResponse({'msg': 'Provided payload is not valid', 'success': False},status=400)
     else:
         return JsonResponse({'msg': 'Invalid HTTP method', 'success': False},status=400)
 
@@ -81,8 +97,38 @@ def people_detail_view(request, people_id):
     """
     if request.method == 'GET':
         result = People.objects.filter(id__exact=people_id).values()[0]
+        result['homeworld'] = 'http://localhost:8000/planets/{}/'.format(result['homeworld_id'])
+        del result['id']
+        del result['homeworld_id']
         return JsonResponse(result,safe=False)
-    elif request.method == 'PUT' or request.method =='PATCH':
+    elif request.method == 'PUT' :
+        try:
+            text = request.body.decode('utf-8')
+            data = json.loads(text)
+
+            expected_keys = ["name","height","mass","homeworld","hair_color"]
+            for key in expected_keys:
+                if key not in data.keys():
+                    return JsonResponse({'msg': 'Missing field in full update', 'success': False}, status=400)
+
+            if not isinstance(data['height'],int):
+                raise ValueError
+            result = People.objects.filter(id__exact=people_id).get()
+            for key,values in data.items():
+                if key == "homeworld":
+                    try:
+                        values = Planet.objects.filter(id__exact=data["homeworld"]).get()
+                    except:
+                        message = 'Could not find planet with id: {}'.format(data["homeworld"])
+                        return JsonResponse({'msg': message, 'success': False},status=404)
+                setattr(result,key,values)
+            result.save()
+            result = People.objects.filter(id__exact=people_id).values()[0]
+            return JsonResponse(result, status=200)
+        except ValueError:
+            return JsonResponse({'msg': 'Provided payload is not valid', 'success': False},status=400)
+    elif request.method =='PATCH':
+
         try:
             text = request.body.decode('utf-8')
             data = json.loads(text)
@@ -101,6 +147,7 @@ def people_detail_view(request, people_id):
             return HttpResponse("Exception Not valid JSON",status=400)
         except:
             return JsonResponse({'msg': 'Provided payload is not valid', 'success': False},status=400)
+
     elif request.method == "DELETE":
         result = People.objects.filter(id__exact=people_id).get()
         result.delete()
